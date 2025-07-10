@@ -90,9 +90,21 @@ jobs:
                   git commit -m "chore: update CHANGELOG for release ${{ env.VERSION }}"
                   git push origin HEAD
 
+            - name: Generate release issue body
+              run: |
+                  echo "# Release Report" > release-issue.md
+                  echo "" >> release-issue.md
+                  echo "- Date: $(date +'%Y-%m-%d %H:%M:%S')" >> release-issue.md
+                  echo "- Released by: @${{ github.actor }}" >> release-issue.md
+                  echo "- Version: ${{ env.VERSION }}" >> release-issue.md
+                  echo "- Docker image: cr.yandex/crpbg7g9053gq8unec5l/app:${{ env.VERSION }}_latest" >> release-issue.md
+                  echo "" >> release-issue.md
+                  echo "## Commits:" >> release-issue.md
+                  echo "${{ env.COMMITS }}" >> release-issue.md
+
             - name: Create GitHub Issue with Release Info
               uses: peter-evans/create-issue-from-file@v5
               with:
                   title: "Release ${{ env.VERSION }}"
-                  content-filepath: .github/release-template.md
+                  content-filepath: release-issue.md
                   labels: release
