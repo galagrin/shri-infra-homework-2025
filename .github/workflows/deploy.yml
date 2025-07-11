@@ -1,0 +1,59 @@
+name: Deploy
+
+on:
+    workflow_dispatch:
+        inputs:
+            release_version:
+                description: "Release Version"
+                required: true
+                type: string
+            issue_number:
+                description: "Issue Number"
+                required: true
+                type: number
+
+env:
+    REGISTRY: cr.yandex/crpbg7g9053gq8unec5l/app
+
+jobs:
+    deploy:
+        name: Deploy Docker Image to Prod
+        runs-on: ubuntu-latest
+        permissions:
+            issues: write
+
+        steps:
+            - name: Проверка наличия Docker-образа с тегом "_latest"
+              env:
+                  TAG: ${{ github.event.inputs.release_version }}_latest
+              run: |
+                  echo "Проверяем, что существует образ: $REGISTRY:$TAG"
+                  docker login -u oauth -p "${{ secrets.YC_CR_TOKEN }}" cr.yandex
+                  if docker pull $REGISTRY:$TAG; then
+                    echo " Образ найден: $REGISTRY:$TAG"
+                  else
+                    echo " Образ с тегом $TAG не найден!"
+                    exit 1
+                  fi
+
+            - name: Выкатка на прод по SSH
+              uses: appleboy/ssh-action@v1.0.3
+              with:
+                  host: 89.169.171.148
+                  username: galinabobrik
+                  key: ${{ secrets.VM_SSH_KEY }}
+                  script: |
+                      docker login -u oauth -p "${{ secrets.YC_CR_TOKEN }}" cr.yandex
+                      docker pull $REGISTRY:${{ github.event.inputs.release_version }}_latest
+                      docker stop shri-infra || true
+                      docker rm shri-infra || true
+                      docker run -d --name shri-infra -p 3000:3000 $REGISTRY:${{ github.event.inputs.release_version }}_latest
+
+            - name: Добавить комментарий в Issue
+              uses: peter-evans/create-or-update-comment@v4
+              with:
+                  issue-number: ${{ github.event.inputs.issue_number }}
+                  body: |
+                      Релиз **${{ github.event.inputs.release_version }}** выкачан в прод.
+                      - Дата: `${{ github.run_started_at }}`
+                      - Запустил: @${{ github.actor }}
