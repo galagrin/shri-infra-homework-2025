@@ -55,5 +55,5 @@ jobs:
                   issue-number: ${{ github.event.inputs.issue_number }}
                   body: |
                       Релиз **${{ github.event.inputs.release_version }}** выкачан в прод.
-                      - Дата: `${{ github.run_started_at }}`
+                      - Дата: ${{ github.run_started_at }}
                       - Запустил: @${{ github.actor }}
