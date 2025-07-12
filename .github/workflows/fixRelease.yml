@@ -97,10 +97,10 @@ jobs:
               id: changelog
               run: |
                   COMMITS=$(git log ${{ env.PREV_TAG }}..HEAD --pretty=format:'- %s (%an)')
-                  echo "COMMITS<<EOF" >> $GITHUB_ENV
-                  echo "$COMMITS" >> $GITHUB_ENV
-                  echo "EOF" >> $GITHUB_ENV
-                  echo "commits=$COMMITS" >> $GITHUB_OUTPUT
+
+                  echo "commits<<EOF" >> $GITHUB_OUTPUT
+                  echo "$COMMITS" >> $GITHUB_OUTPUT
+                  echo "EOF" >> $GITHUB_OUTPUT
 
             - name: Get current date
               id: now
@@ -115,10 +115,11 @@ jobs:
                       **Fix release deployed** — `${{ steps.fix.outputs.FIX_TAG }}`
 
                       **Date:** `${{ steps.now.outputs.date }}`
-                      **Author:** @${{ github.actor }}`
+                      **Author:** @${{ github.actor }}
 
                       **Docker image:**
                       - `${{ env.REGISTRY }}:${{ steps.fix.outputs.FIX_TAG }}`
                       - `${{ env.REGISTRY }}:${{ github.event.inputs.release_version }}_latest`
 
                       **Changes since [${{ steps.prev.outputs.PREV_TAG }}]:**
+                      ${{ steps.changelog.outputs.commits }}
