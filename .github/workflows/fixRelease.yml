@@ -1,0 +1,124 @@
+name: Fix Release
+
+on:
+    workflow_dispatch:
+        inputs:
+            release_version:
+                description: "Release version"
+                required: true
+            issue_number:
+                description: "Related issue number"
+                required: true
+
+env:
+    REGISTRY: cr.yandex/crpbg7g9053gq8unec5l/app
+
+jobs:
+    fix-release:
+        name: Fix release flow
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+            issues: write
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: "20"
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Run Linter and Tests in parallel
+              run: |
+                  npm run lint & 
+                  npm run test &
+                  wait
+
+            - name: Fetch all tags
+              run: git fetch --tags
+
+            - name: Get fix number and tags
+              id: fix
+              run: |
+                  BASE_VERSION='${{ github.event.inputs.release_version }}'
+
+                  TAGS=$(git tag -l "${BASE_VERSION}_fix*")
+
+                  if [[ -z "$TAGS" ]]; then
+                    FIX_NUMBER=1
+                  else
+                    FIX_NUMBER=$(echo "$TAGS" | sed -E "s/.*_fix([0-9]+)/\1/" | sort -nr | head -n 1)
+                    FIX_NUMBER=$((FIX_NUMBER + 1))
+                  fi
+
+                  FIX_TAG="${BASE_VERSION}_fix${FIX_NUMBER}"
+
+                  echo "FIX_NUMBER=$FIX_NUMBER" >> $GITHUB_ENV
+                  echo "FIX_TAG=$FIX_TAG" >> $GITHUB_ENV
+                  echo "FIX_TAG=$FIX_TAG" >> $GITHUB_OUTPUT
+                  echo "::notice::Fix version will be: $FIX_TAG"
+
+            - name: Build Docker image
+              run: |
+                  docker build -t $REGISTRY:${{ env.FIX_TAG }} .
+                  docker tag $REGISTRY:${{ env.FIX_TAG }} $REGISTRY:${{ github.event.inputs.release_version }}_latest
+
+            - name: Login to Yandex Container Registry
+              run: echo "${{ secrets.YC_CR_TOKEN }}" | docker login --username oauth --password-stdin cr.yandex
+
+            - name: Push Docker image with two tags
+              run: |
+                  docker push $REGISTRY:${{ env.FIX_TAG }}
+                  docker push $REGISTRY:${{ github.event.inputs.release_version }}_latest
+
+            - name: Create Git tag for fix
+              run: |
+                  git config user.name "GitHub Actions"
+                  git config user.email "actions@github.com"
+                  git tag ${{ env.FIX_TAG }}
+                  git push origin ${{ env.FIX_TAG }}
+
+            - name: Determine previous tag
+              id: prev
+              run: |
+                  PREV_TAG=$(git tag --sort=-creatordate | grep "^${{ github.event.inputs.release_version }}" | grep -v ${{ env.FIX_TAG }} | head -n 1)
+
+                  echo "PREV_TAG=$PREV_TAG" >> $GITHUB_ENV
+                  echo "PREV_TAG=$PREV_TAG" >> $GITHUB_OUTPUT
+
+            - name: Get commit list since previous tag
+              id: changelog
+              run: |
+                  COMMITS=$(git log ${{ env.PREV_TAG }}..HEAD --pretty=format:'- %s (%an)')
+                  echo "COMMITS<<EOF" >> $GITHUB_ENV
+                  echo "$COMMITS" >> $GITHUB_ENV
+                  echo "EOF" >> $GITHUB_ENV
+                  echo "commits=$COMMITS" >> $GITHUB_OUTPUT
+
+            - name: Get current date
+              id: now
+              run: |
+                  echo "date=$(date +'%Y-%m-%d %H:%M:%S')" >> $GITHUB_OUTPUT
+
+            - name: Comment to related issue
+              uses: peter-evans/create-or-update-comment@v4
+              with:
+                  issue-number: ${{ github.event.inputs.issue_number }}
+                  body: |
+                      **Fix release deployed** — `${{ steps.fix.outputs.FIX_TAG }}`
+
+                      **Date:** `${{ steps.now.outputs.date }}`
+                      **Author:** @${{ github.actor }}`
+
+                      **Docker image:**
+                      - `${{ env.REGISTRY }}:${{ steps.fix.outputs.FIX_TAG }}`
+                      - `${{ env.REGISTRY }}:${{ github.event.inputs.release_version }}_latest`
+
+                      **Changes since [${{ steps.prev.outputs.PREV_TAG }}]:**
