@@ -49,11 +49,16 @@ jobs:
                       docker rm shri-infra || true
                       docker run -d --name shri-infra -p 3000:3000 cr.yandex/crpbg7g9053gq8unec5l/app:${{ github.event.inputs.release_version }}_latest
 
+            - name: Get current date
+              id: now
+              run: |
+                  echo "date=$(date +'%Y-%m-%d %H:%M:%S')" >> $GITHUB_OUTPUT
+
             - name: Добавить комментарий в Issue
               uses: peter-evans/create-or-update-comment@v4
               with:
                   issue-number: ${{ github.event.inputs.issue_number }}
                   body: |
                       Релиз **${{ github.event.inputs.release_version }}** выкачан в прод.
-                      - Дата: ${{ github.run_started_at }}
+                      - Дата: ${{ steps.now.outputs.date }}
                       - Запустил: @${{ github.actor }}
