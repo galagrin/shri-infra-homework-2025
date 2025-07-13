@@ -1,0 +1,16 @@
+## 8 — 2025-07-13
+- Merge pull request #12 from galagrin/fix-deployDate (Galina Bobrik)
+- fix deployDate (Galina Bobrik)
+- Merge pull request #11 from galagrin/fix-release1 (Galina Bobrik)
+- fix release1 (Galina Bobrik)
+- Merge pull request #10 from galagrin/fix-release (Galina Bobrik)
+- fix release (Galina Bobrik)
+- Merge pull request #9 from galagrin/add-deploy2 (Galina Bobrik)
+- fix data (Galina Bobrik)
+- Merge pull request #8 from galagrin/add-deploy1 (Galina Bobrik)
+- add deploy (Galina Bobrik)
+- Merge pull request #7 from galagrin/add-deploy (Galina Bobrik)
+- add deploy (Galina Bobrik)
+- Merge pull request #5 from galagrin/edit-release1 (Galina Bobrik)
+- edit release (Galina Bobrik)
+
