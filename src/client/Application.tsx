@@ -24,7 +24,7 @@ export const Application: FC = () => {
 
     const count = Object.keys(cart).length;
     const cartLabel = count ? `Cart (${count})` : 'Cart';
-    const navbarClass = collapsed ? 'collapse navbar-collapse' : 'navbar-collapse';
+const navbarClass = collapsed ? 'collapse navbar-collapse' : 'navbar-collapse';
 
     return (
         <div className={bem()}>
