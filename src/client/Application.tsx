@@ -24,7 +24,6 @@ export const Application: FC = () => {
 
     const count = Object.keys(cart).length;
     const cartLabel = count ? `Cart (${count})` : 'Cart';
-    // @ts-ignore
     const navbarClass = collapsed ? 'collapse navbar-collapse' : 'navbar-collapse';
 
     return (
